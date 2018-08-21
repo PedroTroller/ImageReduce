@@ -4,5 +4,6 @@ services:
 
     php:
         build: .
+        image: pedrotroller/image-reduce
         volumes:
             - ./images:/code

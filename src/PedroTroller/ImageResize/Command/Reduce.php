@@ -9,6 +9,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Spatie\ImageOptimizer\OptimizerChainFactory;
+use Symfony\Component\Finder\Finder;
 
 final class Reduce extends Command
 {
@@ -29,22 +30,36 @@ final class Reduce extends Command
             ->setName('reduce')
             ->setDescription('Try to reduce images.')
             ->addArgument(
-                'globToImage',
+                'fileOrFolder',
                 InputArgument::REQUIRED,
-                'A pattern to find images. Images will be overwritten by an optimized version which should be smaller.'
+                'An image path or a folder containing images. Images will be overwritten by an optimized version which should be smaller.'
             )
         ;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        foreach (glob($input->getArgument('globToImage')) as $file) {
+        $files = [];
+
+        if (is_file($input->getArgument('fileOrFolder'))) {
+            $files = [$input->getArgument('fileOrFolder')];
+        } else {
+            $finder = Finder::create()->in($input->getArgument('fileOrFolder'))->files();
+
+            foreach ($finder as $file) {
+                $files[] = $file->getPathname();
+            }
+        }
+
+        foreach ($files as $file) {
             $originalSize = filesize($file);
+
             do {
                 $beforeOptimization = filesize($file);
                 OptimizerChainFactory::create()->optimize($file);
                 $afterOptimization = filesize($file);
             } while ($afterOptimization < $beforeOptimization);
+
             $compressedSize = filesize($file);
 
             if ($originalSize === $compressedSize) {

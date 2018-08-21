@@ -3,12 +3,11 @@
 ## Run with Docker
 
 ```bash
- $ docker run --rm -v $(pwd)/app pedrotroller/image-reduce ./**
+ $ docker run -it --rm -v $(pwd):/app -u $(id -u) pedrotroller/image-reduce src
 ```
 
 
- - `-v $(pwd)/app` to make your sources accessible by the application.
- - `./**` the location of files to analyze
+ - `src`: the location of files to analyze (can be a file path or a folder path)
 
 ## Run with PHP
 
