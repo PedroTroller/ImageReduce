@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace PedroTroller\ImageResize;
 
-use Symfony\Component\Console\Application as SymfonyApplication;
 use PedroTroller\ImageResize\Command\Reduce;
+use Symfony\Component\Console\Application as SymfonyApplication;
 
 final class Application extends SymfonyApplication
 {

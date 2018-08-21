@@ -8,5 +8,12 @@
         "psr-4": {
             "PedroTroller\\ImageResize\\": "src/PedroTroller/ImageResize/"
         }
+    },
+    "minimum-stability": "dev",
+    "config": {
+        "sort-packages": true
+    },
+    "require-dev": {
+        "pedrotroller/php-cs-custom-fixer": "~3@dev"
     }
 }

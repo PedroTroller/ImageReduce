@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace PedroTroller\ImageResize\Command;
 
+use Spatie\ImageOptimizer\OptimizerChainFactory;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Spatie\ImageOptimizer\OptimizerChainFactory;
 use Symfony\Component\Finder\Finder;
 
 final class Reduce extends Command
@@ -24,7 +24,7 @@ final class Reduce extends Command
         'TB',
     ];
 
-    protected function configure()
+    protected function configure(): void
     {
         $this
             ->setName('reduce')
@@ -37,7 +37,7 @@ final class Reduce extends Command
         ;
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): void
     {
         $files = [];
 
@@ -79,8 +79,8 @@ final class Reduce extends Command
                         sprintf(
                             '<info>File %s optimized from %s to %s.</info>',
                             $file,
-                            $this->format(floatval($originalSize)),
-                            $this->format(floatval($compressedSize))
+                            $this->format((float) $originalSize),
+                            $this->format((float) $compressedSize)
                         )
                     )
                 ;
@@ -92,8 +92,8 @@ final class Reduce extends Command
                         sprintf(
                             '<error>File %s degraded from %s to %s.</error>',
                             $file,
-                            $this->format(floatval($originalSize)),
-                            $this->format(floatval($compressedSize))
+                            $this->format((float) $originalSize),
+                            $this->format((float) $compressedSize)
                         )
                     )
                 ;
