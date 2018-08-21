@@ -1,0 +1,11 @@
+{
+    "require": {
+        "spatie/image-optimizer": "^1.1",
+        "symfony/console": "^4.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "PedroTroller\\ImageResize\\": "src/PedroTroller/ImageResize/"
+        }
+    }
+}
