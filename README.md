@@ -1,5 +1,7 @@
 # Image optimization
 
+![Screenshare](./doc/screen.gif)
+
 ## Run with Docker
 
 ```bash
