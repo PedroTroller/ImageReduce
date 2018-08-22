@@ -4,16 +4,18 @@
         "symfony/console": "^4.1",
         "symfony/finder": "^4.1"
     },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "~3@dev",
+        "memio/spec-gen": "^0.9.0",
+        "pedrotroller/php-cs-custom-fixer": "~3@dev",
+        "phpspec/phpspec": "^5.0"
+    },
     "autoload": {
         "psr-4": {
             "PedroTroller\\ImageResize\\": "src/PedroTroller/ImageResize/"
         }
     },
-    "minimum-stability": "dev",
     "config": {
         "sort-packages": true
-    },
-    "require-dev": {
-        "pedrotroller/php-cs-custom-fixer": "~3@dev"
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PedroTroller\ImageResize\Command;
 
 use Exception;
+use PedroTroller\ImageResize\FileSizeFormatter;
 use Spatie\ImageOptimizer\OptimizerChainFactory;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -151,15 +152,9 @@ final class Reduce extends Command
         }
     }
 
-    private function format(float $size, string $unit = 'B'): string
+    private function format(float $bytes): string
     {
-        $currentIndex = array_search($unit, $this->units);
-
-        if ($size < 1024 || false === $currentIndex || false === array_key_exists((int) $currentIndex + 1, $this->units)) {
-            return sprintf('%s %s', number_format($size, 2), $unit);
-        }
-
-        return $this->format($size / 1024, $this->units[(int) $currentIndex + 1]);
+        return (new FileSizeFormatter())->bytes($bytes);
     }
 
     private function backup(string $file): void
