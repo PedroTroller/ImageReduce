@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PedroTroller\ImageResize\Command;
 
+use Exception;
 use Spatie\ImageOptimizer\OptimizerChainFactory;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -23,6 +24,11 @@ final class Reduce extends Command
         'GB',
         'TB',
     ];
+
+    /**
+     * @var array<string,string>
+     */
+    private $backups = [];
 
     protected function configure(): void
     {
@@ -51,53 +57,97 @@ final class Reduce extends Command
             }
         }
 
-        foreach ($files as $file) {
-            $originalSize = filesize($file);
+        foreach ($files as $originalFile) {
+            $this->backup($originalFile);
+            $originalSize = filesize($originalFile);
 
             do {
-                $beforeOptimization = filesize($file);
-                OptimizerChainFactory::create()->optimize($file);
-                $afterOptimization = filesize($file);
+                $beforeOptimization = filesize($originalFile);
+                OptimizerChainFactory::create()->optimize($originalFile);
+                $afterOptimization = filesize($originalFile);
             } while ($afterOptimization < $beforeOptimization);
 
-            $compressedSize = filesize($file);
+            $compressedSize = filesize($originalFile);
 
             if ($originalSize === $compressedSize) {
-                $output
-                    ->writeln(
-                        sprintf(
-                            '<comment>File %s not optimized.</comment>',
-                            $file
-                        )
-                    )
-                ;
+                $this->handleNoOptimization($output, $originalFile);
+
+                continue;
             }
 
             if ($originalSize > $compressedSize) {
-                $output
-                    ->writeln(
-                        sprintf(
-                            '<info>File %s optimized from %s to %s.</info>',
-                            $file,
-                            $this->format((float) $originalSize),
-                            $this->format((float) $compressedSize)
-                        )
-                    )
-                ;
+                $this->handleCompression($output, $originalFile, (float) $originalSize, (float) $compressedSize);
+
+                continue;
             }
 
             if ($originalSize < $compressedSize) {
-                $output
-                    ->writeln(
-                        sprintf(
-                            '<error>File %s degraded from %s to %s.</error>',
-                            $file,
-                            $this->format((float) $originalSize),
-                            $this->format((float) $compressedSize)
-                        )
-                    )
-                ;
+                $this->handleRegression($output, $originalFile, (float) $originalSize, (float) $compressedSize);
+
+                continue;
             }
+        }
+    }
+
+    private function handleCompression(
+        OutputInterface $output,
+        string $originalFile,
+        float $originalSize,
+        float $compressedSize
+    ): void {
+        $compression = ceil(($compressedSize * 100) / $originalSize);
+
+        $output
+            ->writeln(
+                sprintf(
+                    '<info>File %s optimized from %s to %s (-%d%%).</info>',
+                    $originalFile,
+                    $this->format($originalSize),
+                    $this->format($compressedSize),
+                    100 - $compression
+                )
+            )
+        ;
+    }
+
+    private function handleRegression(
+        OutputInterface $output,
+        string $originalFile,
+        float $originalSize,
+        float $compressedSize
+    ): void {
+        $this->restore($originalFile);
+
+        $compression = ceil(($compressedSize * 100) / $originalSize);
+
+        if ($output->isVerbose()) {
+            $output
+                ->writeln(
+                    sprintf(
+                        '<error>File %s degraded from %s to %s (+%s%%).</error>',
+                        $originalFile,
+                        $this->format($originalSize),
+                        $this->format($compressedSize),
+                        -(100 - $compression)
+                    )
+                )
+            ;
+        }
+    }
+
+    private function handleNoOptimization(OutputInterface $output, string $originalFile): void
+    {
+        $this->restore($originalFile);
+
+        if ($output->isVerbose()) {
+            $output
+                ->writeln(
+                    sprintf(
+                        '<comment>File %s not optimized.</comment>',
+                        $originalFile
+                    )
+                )
+            ;
         }
     }
 
@@ -110,5 +160,94 @@ final class Reduce extends Command
         }
 
         return $this->format($size / 1024, $this->units[(int) $currentIndex + 1]);
+    }
+
+    private function backup(string $file): void
+    {
+        $originalFile = realpath($file);
+
+        if (false === $originalFile) {
+            throw new Exception(sprintf('File "%s" does not exists.', $file));
+        }
+
+        if (array_key_exists($originalFile, $this->backups)) {
+            return;
+        }
+
+        $backupFile = tempnam(sys_get_temp_dir(), 'reduce_');
+
+        if (false === $backupFile) {
+            throw new Exception(
+                sprintf(
+                    'Enable to create a backup file. The "%s" directory does not seem to be accessible.',
+                    sys_get_temp_dir()
+                )
+            );
+        }
+
+        $this->backups[$originalFile] = $backupFile;
+
+        $originalStream = fopen($originalFile, 'r');
+
+        if (false === $originalStream) {
+            throw new Exception(
+                sprintf(
+                    'The "%s" file does not seem to be accessible.',
+                    $originalFile
+                )
+            );
+        }
+
+        $backupStream = fopen($backupFile, 'w');
+
+        if (false === $backupStream) {
+            throw new Exception(
+                sprintf(
+                    'The "%s" file does not seem to be accessible.',
+                    $backupFile
+                )
+            );
+        }
+
+        stream_copy_to_stream($originalStream, $backupStream);
+    }
+
+    private function restore(string $file): void
+    {
+        $originalFile = realpath($file);
+
+        if (false === $originalFile) {
+            throw new Exception(sprintf('File "%s" does not exists.', $file));
+        }
+
+        if (false === array_key_exists($originalFile, $this->backups)) {
+            throw new Exception(sprintf('There is no backup file for "%s".', $file));
+        }
+
+        $backupFile = $this->backups[$originalFile];
+
+        $backupStream = fopen($backupFile, 'r');
+
+        if (false === $backupStream) {
+            throw new Exception(
+                sprintf(
+                    'The "%s" file does not seem to be accessible.',
+                    $backupFile
+                )
+            );
+        }
+
+        $originalStream = fopen($originalFile, 'w');
+
+        if (false === $originalStream) {
+            throw new Exception(
+                sprintf(
+                    'The "%s" file does not seem to be accessible.',
+                    $originalFile
+                )
+            );
+        }
+
+        stream_copy_to_stream($backupStream, $originalStream);
     }
 }
