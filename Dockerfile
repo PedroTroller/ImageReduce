@@ -10,6 +10,7 @@ RUN apt-get update \
 WORKDIR /usr/src/reduce
 
 COPY --from=composer /usr/bin/composer /usr/bin/composer
+RUN composer global require hirak/prestissimo
 COPY composer.json /usr/src/reduce/composer.json
 RUN composer install
 
